@@ -26,7 +26,8 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres123
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
     depends_on:
-      - database
+      database:
+        condition: service_healthy   # รอจน DB พร้อมก่อน
 
   database:
     image: postgres:17-alpine
@@ -40,6 +41,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:                      # ✅ ตรวจสุขภาพ DB
+      test: ["CMD-SHELL", "pg_isready -U postgres -d apartment_management || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
 volumes:
   postgres_data:
