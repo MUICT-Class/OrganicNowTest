@@ -27,6 +27,11 @@ jobs:
             image: organicnow-frontend
 
     steps:
+      - name: Sanity check secrets (no values printed)
+        run: |
+          test -n "${{ secrets.DOCKERHUB_USERNAME }}" && echo "USERNAME: OK" || (echo "USERNAME: MISSING" && exit 1)
+          test -n "${{ secrets.DOCKERHUB_TOKEN }}" && echo "TOKEN: OK" || (echo "TOKEN: MISSING" && exit 1)
+    
       - name: Checkout
         uses: actions/checkout@v4
 
