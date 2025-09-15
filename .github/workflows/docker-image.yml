@@ -10,8 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      NS: ${{ secrets.DOCKERHUB_USERNAME }}
-      SHORT_SHA: ${{ github.sha.substr(0,7) }}
+      NS: ${{ secrets.DOCKERHUB_USERNAME }}   # ชื่อ namespace/username บน Docker Hub
+      FULL_SHA: ${{ github.sha }}             # ยังไม่ตัด ให้ตัดใน shell
 
     strategy:
       fail-fast: false
@@ -42,12 +42,17 @@ jobs:
       - name: Compute tags
         id: meta
         run: |
-          IMAGE="${{ env.NS }}/${{ matrix.image }}"
-          echo "image=$IMAGE" >> $GITHUB_OUTPUT
-          echo "tags=$IMAGE:latest,$IMAGE:${{ env.SHORT_SHA }}" >> $GITHUB_OUTPUT
+          SHORT_SHA="${FULL_SHA::7}"
+          IMAGE="${NS}/${{ matrix.image }}"
+          TAGS="$IMAGE:latest,$IMAGE:${SHORT_SHA}"
+
+          # ถ้ามี git tag เช่น v1.2.3 ให้เติม tag นั้นด้วย
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            echo "tags=$(cat $GITHUB_OUTPUT | sed -n 's/^tags=//p'),$IMAGE:${GITHUB_REF_NAME}" > $GITHUB_OUTPUT
+            TAGS="$TAGS,$IMAGE:${GITHUB_REF_NAME}"
           fi
+
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "tags=${TAGS}"   >> "$GITHUB_OUTPUT"
 
       - name: Build & Push ${{ matrix.name }}
         uses: docker/build-push-action@v6
@@ -58,3 +63,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # platforms: linux/amd64,linux/arm64   # ถ้าต้อง multi-arch ค่อยปลด
